@@ -1,14 +1,10 @@
 export default async function handler(req, res) {
   const code = req.query.code;
-
-  if (!code) {
-    return res.status(400).json({ allowed: false, error: "No code provided" });
-  }
-
+  
   const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
   const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
   const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-  const REDIRECT_URI = `https://cocoa-authapi.vercel.app/api/main`;
+  const REDIRECT_URI = `https://cocoa-authapi.vercel.app/api/check`;
 
   if (!CLIENT_ID || !CLIENT_SECRET || !BOT_TOKEN) {
     return res.status(500).json({ allowed: false, error: "Server not configured" });
@@ -18,6 +14,7 @@ export default async function handler(req, res) {
   const ROLE_ID = "1463628337418338616";
 
   try {
+    // 1️⃣ exchange code for access token
     const params = new URLSearchParams();
     params.append("client_id", CLIENT_ID);
     params.append("client_secret", CLIENT_SECRET);
@@ -37,12 +34,14 @@ export default async function handler(req, res) {
       return res.status(403).json({ allowed: false });
     }
 
+    // 2️⃣ get user info
     const userRes = await fetch("https://discord.com/api/v10/users/@me", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     const user = await userRes.json();
     const userId = user.id;
 
+    // 3️⃣ fetch guild member (check role)
     const memberRes = await fetch(
       `https://discord.com/api/v10/guilds/${GUILD_ID}/members/${userId}`,
       {
@@ -61,6 +60,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ allowed: false });
     }
 
+    // ✅ user has role
     return res.status(200).json({ allowed: true });
   } catch (err) {
     console.error(err);
