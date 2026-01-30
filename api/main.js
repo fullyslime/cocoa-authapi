@@ -1,3 +1,7 @@
+// cocoa-authapi
+// main.js
+// checks the validity of a userid that gets passed through 0auth
+
 export default async function handler(req, res) {
   try {
     const code = req.query.code;
@@ -11,7 +15,6 @@ export default async function handler(req, res) {
 
     const REDIRECT_URI = "https://cocoa-authapi.vercel.app/api/main";
 
-    // 1️⃣ exchange code for access token
     const params = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
       client_secret: DISCORD_CLIENT_SECRET,
@@ -48,7 +51,6 @@ export default async function handler(req, res) {
 
     const member = await memberRes.json();
 
-    // 4️⃣ check role
     const hasRole = member.roles.includes("1463628337418338616");
 
     if (hasRole) {
