@@ -1,19 +1,14 @@
 export default async function handler(req, res) {
   try {
     const code = req.query.code;
-    if (!code) return res.status(400).json({ allowed: false, error: "No code provided" });
+    if (!code) return res.status(400).send("No code provided.");
 
-    const {
-      DISCORD_CLIENT_ID,
-      DISCORD_CLIENT_SECRET,
-      DISCORD_BOT_TOKEN
-    } = process.env;
+    const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_BOT_TOKEN } = process.env;
 
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_BOT_TOKEN) {
-      return res.status(500).json({ allowed: false, error: "Server not configured" });
+      return res.status(500).send("Internal server error.");
     }
 
-    // ⚠️ must exactly match the redirect URI registered in Discord
     const REDIRECT_URI = "https://cocoa-authapi.vercel.app/api/main";
 
     // 1️⃣ exchange code for access token
@@ -31,40 +26,39 @@ export default async function handler(req, res) {
       body: params
     });
 
-    if (!tokenRes.ok) {
-      const text = await tokenRes.text();
-      return res.status(403).json({ allowed: false, tokenError: text });
-    }
+    if (!tokenRes.ok) return res.status(403).send("cocoa access denied");
 
     const { access_token } = await tokenRes.json();
-    if (!access_token) return res.status(403).json({ allowed: false });
+    if (!access_token) return res.status(403).send("cocoa access denied");
 
-    // 2️⃣ fetch user info
     const userRes = await fetch("https://discord.com/api/v10/users/@me", {
       headers: { Authorization: `Bearer ${access_token}` }
     });
 
-    if (!userRes.ok) return res.status(403).json({ allowed: false });
+    if (!tokenRes.ok) return res.status(403).send("cocoa access denied");
 
     const user = await userRes.json();
 
-    // 3️⃣ fetch guild member using bot token
     const memberRes = await fetch(
       `https://discord.com/api/v10/guilds/1463615235674869772/members/${user.id}`,
       { headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` } }
     );
-
-    if (!memberRes.ok) return res.status(403).json({ allowed: false });
+    
+    if (!tokenRes.ok) return res.status(403).send("cocoa access denied");
 
     const member = await memberRes.json();
 
     // 4️⃣ check role
     const hasRole = member.roles.includes("1463628337418338616");
 
-    return res.status(200).json({ allowed: hasRole });
+    if (hasRole) {
+      return res.status(200).send("cocoa access granted.");
+    } else {
+      return res.status(403).send("cocoa access denied");
+    }
 
   } catch (err) {
     console.error("API CRASH:", err);
-    return res.status(500).json({ allowed: false });
+    return res.status(500).send("internal server error");
   }
 }
