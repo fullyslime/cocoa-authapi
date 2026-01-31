@@ -33,17 +33,16 @@ export default async function handler(req, res) {
       body: params
     });
 
-    if (!tokenRes.ok) return res.status(403).send("rrow access denied");
+    if (!tokenRes.ok) return res.status(403).send("you are not permitted access to rrow right now.");
 
     const { access_token } = await tokenRes.json();
-    if (!access_token) return res.status(403).send("rrow access denied");
+    if (!access_token) return res.status(403).send("you are not permitted access to rrow right now.");
 
     const userRes = await fetch("https://discord.com/api/v10/users/@me", {
       headers: { Authorization: `Bearer ${access_token}` }
     });
 
-    if (!userRes.ok) return res.status(403).send("rrow access denied");
-
+    if (!userRes.ok) return res.status(403).send("you are not permitted access to rrow right now.");
     const user = await userRes.json();
 
     const memberRes = await fetch(
@@ -51,14 +50,14 @@ export default async function handler(req, res) {
       { headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` } }
     );
 
-    if (!memberRes.ok) return res.status(403).send("rrow access denied");
+    if (!memberRes.ok) return res.status(403).send("you are not permitted access to rrow right now.");
 
     const member = await memberRes.json();
     const hasRole = member.roles.includes("1463628337418338616");
 
     return hasRole
-      ? res.status(200).send("rrow access granted")
-      : res.status(403).send("rrow access denied");
+      ? res.status(200).send("your security access code is: " + code + ".\nEnter this code where you are currently prompted to.\nnote: this code is not permanent, each time you login, a new one is generated.");
+      : res.status(403).send("you are not permitted access to rrow right now.");
 
   } catch (err) {
     console.error("API CRASH:", err);
