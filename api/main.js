@@ -1,19 +1,23 @@
-// cocoa-authapi
+// rrow-authapi
 // main.js
-// checks the validity of a userid that gets passed through 0auth
+// checks the validity of a userid that gets passed through oauth
 
 export default async function handler(req, res) {
   try {
     const code = req.query.code;
-    if (!code) return res.status(400).send("No code provided.");
+    if (!code) return res.status(400).send("no code provided");
 
-    const { DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_BOT_TOKEN } = process.env;
+    const {
+      DISCORD_CLIENT_ID,
+      DISCORD_CLIENT_SECRET,
+      DISCORD_BOT_TOKEN
+    } = process.env;
 
     if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_BOT_TOKEN) {
-      return res.status(500).send("Internal server error.");
+      return res.status(500).send("internal server error");
     }
 
-    const REDIRECT_URI = "https://cocoa-authapi.vercel.app/api/main";
+    const REDIRECT_URI = "https://rrowauth.vercel.app/api/main";
 
     const params = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
@@ -29,16 +33,16 @@ export default async function handler(req, res) {
       body: params
     });
 
-    if (!tokenRes.ok) return res.status(403).send("cocoa access denied");
+    if (!tokenRes.ok) return res.status(403).send("rrow access denied");
 
     const { access_token } = await tokenRes.json();
-    if (!access_token) return res.status(403).send("cocoa access denied");
+    if (!access_token) return res.status(403).send("rrow access denied");
 
     const userRes = await fetch("https://discord.com/api/v10/users/@me", {
       headers: { Authorization: `Bearer ${access_token}` }
     });
 
-    if (!tokenRes.ok) return res.status(403).send("cocoa access denied");
+    if (!userRes.ok) return res.status(403).send("rrow access denied");
 
     const user = await userRes.json();
 
@@ -46,18 +50,15 @@ export default async function handler(req, res) {
       `https://discord.com/api/v10/guilds/1463615235674869772/members/${user.id}`,
       { headers: { Authorization: `Bot ${DISCORD_BOT_TOKEN}` } }
     );
-    
-    if (!tokenRes.ok) return res.status(403).send("cocoa access denied");
+
+    if (!memberRes.ok) return res.status(403).send("rrow access denied");
 
     const member = await memberRes.json();
-
     const hasRole = member.roles.includes("1463628337418338616");
 
-    if (hasRole) {
-      return res.status(200).send("cocoa access granted.");
-    } else {
-      return res.status(403).send("cocoa access denied");
-    }
+    return hasRole
+      ? res.status(200).send("rrow access granted")
+      : res.status(403).send("rrow access denied");
 
   } catch (err) {
     console.error("API CRASH:", err);
